@@ -90,11 +90,11 @@ export const signIn = async (req, res) => {
       expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL),
     });
 
-    // trả refresh token về trong cookie
+    const isProd = process.env.NODE_ENV === "production";
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: true,
-      sameSite: "none", //backend, frontend deploy riêng
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
       maxAge: REFRESH_TOKEN_TTL,
     });
 
@@ -114,12 +114,14 @@ export const signOut = async (req, res) => {
     const token = req.cookies?.refreshToken;
 
     if (token) {
-      // xoá refresh token trong Session
       await Session.deleteOne({ refreshToken: token });
-
-      // xoá cookie
-      res.clearCookie("refreshToken");
     }
+    const isProd = process.env.NODE_ENV === "production";
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? "none" : "lax",
+    });
 
     return res.sendStatus(204);
   } catch (error) {
